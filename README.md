@@ -1,3 +1,6 @@
+> **🇹🇷 Jarvis_Bora:** Bu repo [open-jarvis/OpenJarvis](https://github.com/open-jarvis/OpenJarvis)'in bir kopyasıdır.
+> Türkçe yerel kurulum rehberi için **[KURULUM.md](KURULUM.md)** — kısaca: `git clone https://github.com/BoraKilerci/Jarvis_Bora.git && cd Jarvis_Bora && ./kur.sh`
+
 <div align="center">
   <img alt="OpenJarvis" src="assets/OpenJarvis_Horizontal_Logo.png" width="400">
 
