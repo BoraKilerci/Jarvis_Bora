@@ -173,7 +173,113 @@ Anahtar yoksa her şey yerelde kalır.
 
 ---
 
-## 7. Güncelleme
+## 7. Modeli telefonda çalıştırmak (Android)
+
+Model bilgisayar yerine **Android telefonda** çalışabilir; OpenJarvis da
+bilgisayardan aynı Wi-Fi üzerinden telefona bağlanır. Bunun için telefonda
+OpenAI uyumlu bir sunucu açan bir uygulama gerekir. Örneğin
+[Ollama Local AI](https://play.google.com/store/apps/details?id=com.llmproxy)
+(`com.llmproxy`). Adına rağmen bu uygulamanın Ollama projesiyle ilgisi yok;
+GGUF modelleri llama.cpp ile telefonda çalıştırır.
+
+> Bu adımlar OpenJarvis'in kodundaki `llamacpp` motoruna göre yazıldı, gerçek
+> bir telefonla test edilmedi. Uygulamanın ekranındaki IP, port ve model adı
+> senin cihazına göre farklı olacaktır.
+
+### 7.1 Telefona uygun model seç
+
+Modelin dosya boyutu telefonun **boş** RAM'inden küçük olmalı. Android RAM'in
+yaklaşık %40–50'sini sisteme ayırır.
+
+| Telefon RAM'i | Önerilen model (Q4_K_M GGUF) | Dosya boyutu |
+|---|---|---|
+| 4 GB | Qwen3.5 0.8B | ~0,5 GB |
+| 6–8 GB | **Qwen3.5 2B** (en dengeli) veya Gemma 4 E2B | ~1,2–1,3 GB |
+| 8 GB+ | Qwen3.5 4B veya Gemma 4 E4B | ~2,5–3 GB |
+| 12 GB+ | Qwen3.5 9B | ~5,5 GB |
+
+- Hugging Face'te model adı + `GGUF` ile arat (ör. `Qwen3.5-2B GGUF`) ve dosya
+  adında **`Q4_K_M`** olanı indir.
+- Bağlam uzunluğunu (context) önce **2048** ile başlat; yükseldikçe RAM tüketimi artar.
+
+### 7.2 Telefonda sunucuyu başlat
+
+1. Uygulamada modeli yükle ve sunucuyu başlat.
+2. Ekranda görünen **IP adresini ve portu** not al (ör. `192.168.1.42:8080`).
+3. Uygulama bir **API anahtarı** gösteriyorsa onu da not al.
+4. Telefon ve bilgisayar **aynı Wi-Fi ağında** olmalı.
+
+### 7.3 Bilgisayardan bağlantıyı test et
+
+```bash
+curl http://192.168.1.42:8080/v1/models
+# API anahtarı varsa:
+curl -H "Authorization: Bearer ANAHTARIN" http://192.168.1.42:8080/v1/models
+```
+
+Çıktıda bir model listesi (JSON) görmelisin. Listedeki `"id"` değerini not al.
+OpenJarvis'te model adı olarak bunu kullanacaksın.
+
+### 7.4 OpenJarvis'i telefona yönlendir
+
+```bash
+jarvis init --engine llamacpp --host http://192.168.1.42:8080 --force --no-download
+```
+
+Bu komut `~/.openjarvis/config.toml` dosyasına şunu yazar:
+
+```toml
+[engine]
+default = "llamacpp"
+
+[engine.llamacpp]
+host = "http://192.168.1.42:8080"
+
+[intelligence]
+default_model = "qwen3.5:4b"   # ← bunu telefondaki modelin id'si ile değiştir
+```
+
+`default_model` satırını 7.3'te not aldığın `id` ile değiştir.
+
+Uygulama API anahtarı istiyorsa, `jarvis`'i çalıştırmadan önce anahtarı
+ortam değişkeni olarak ver (kalıcı olması için `~/.bashrc` / `~/.zshrc`'ye ekle):
+
+```bash
+export LLAMACPP_API_KEY=ANAHTARIN
+```
+
+### 7.5 Dene
+
+```bash
+jarvis doctor                     # motor bağlantısını kontrol eder
+jarvis ask "Merhaba, nasılsın?"
+jarvis                            # sohbet
+```
+
+Tek seferlik denemede ayarı değiştirmeden model/motor seçmek için:
+
+```bash
+jarvis ask -e llamacpp -m <model-id> "Merhaba"
+```
+
+### 7.6 Sorun giderme ve güvenlik
+
+| Sorun | Çözüm |
+|---|---|
+| `curl` zaman aşımı / bağlantı reddedildi | Aynı Wi-Fi'de misin? Sunucu uygulamada açık mı? IP değişmiş olabilir; ekrandan tekrar bak |
+| Bağlantı kısa süre sonra kopuyor | Android'de uygulama için **pil optimizasyonunu kapat**, ekranı açık tut |
+| `401` / `403` hatası | API anahtarı eksik ya da yanlış: `LLAMACPP_API_KEY` |
+| Model bulunamadı hatası | `default_model`, `/v1/models` çıktısındaki `id` ile birebir aynı olmalı |
+| Çok yavaş / telefon ısınıyor | Daha küçük model veya daha kısa bağlam (context) kullan |
+| Yerel Ollama'ya geri dönmek | `jarvis init --engine ollama --force` |
+
+**Güvenlik:** Sunucuyu yalnızca ev Wi-Fi'si gibi güvendiğin ağlarda açık tut.
+Kafe, okul gibi ortak ağlarda aynı ağdaki herkes modeline istek gönderebilir.
+Kullanmadığında sunucuyu kapat.
+
+---
+
+## 8. Güncelleme
 
 **Bu repoyu upstream ile güncelle** (repo klonunun içinde):
 
@@ -192,7 +298,7 @@ bu yüzden önce `guncelle.sh --push` ile repoyu güncelle.
 
 ---
 
-## 8. Sorun giderme
+## 9. Sorun giderme
 
 | Sorun | Çözüm |
 |---|---|
